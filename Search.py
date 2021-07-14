@@ -25,7 +25,6 @@ def search():
         
         keywords = request.form['searchbar']
         # Pass the above user input to interface and specify mode
-        print(keywords)
 
         keywords_split = keywords.split()
         search_mode = keywords_split[0]
@@ -171,4 +170,3 @@ def convert_unicode_to_uri(unicode_url):
 if __name__ == '__main__':
     app.debug = True
     app.run()
-    
