@@ -1,0 +1,30 @@
+<!-- Search Bar -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="/static/index.css">
+    </head>
+    <body>
+        <a href="{{ url_for('logout') }}">logout</a>
+        <h1><center>Cyberminer</center></h1>
+        <form class="example" method="post" action="" style="margin:auto;max-width:600px">
+            <input type="text" placeholder="Search by keyword to see all the relevant links" name="searchbar" value="{{ keywords }}">
+            <button type="submit"><i class="fa fa-search"></i></button>
+        </form>
+        <p></p>
+        <center>
+        {% for item in data %}
+            <a href="/visit?url={{item[1]}}">
+                <!-- <h4 style="font-size:x-small;margin-bottom: 2px;text-decoration: none;">{{item[1]}}<h4> -->
+                <p style="font-size: x-small; color: black;text-decoration: none;">{{item[1]}}<p>    
+                <div style="height:100%;width:100%; margin-top: none;">
+                    <p>{{item[0]}}</p>
+                </div>
+            </a>
+            </br>
+        {% endfor %}
+        </center>
+    </body>
+</html>
