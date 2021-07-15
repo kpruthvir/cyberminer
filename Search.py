@@ -11,9 +11,15 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = 'secret_key'
 
+#redirect to home page without manually typing full URL
+@app.route('/')
+def main():
+    return redirect('/search')
+
 #endpoint for search
 @app.route('/search', methods=['GET', 'POST'])
 def search():
+
     if request.method == "POST":
         print('enter search method', session)
         # add anon user for first access to search
@@ -21,6 +27,7 @@ def search():
             user = {}
             user['name'] = 'anon'
             user['visited'] = {}
+            user['id'] = 0 #anonymous user has ID of 0
             session['user'] = user
         
         keywords = request.form['searchbar']
@@ -28,7 +35,6 @@ def search():
 
         keywords_split = keywords.split()
         search_mode = keywords_split[0]
-        print(search_mode)
 
         mode_specified = False
         mode = "OR"
@@ -42,12 +48,17 @@ def search():
         if mode_specified == True:
             keywords_split.pop(0)
 
-        interface = DatabaseQuery()
+        interface = DatabaseQuery(session['user']['id'])
         data = interface.retrieve_data(keywords_split, mode)
 
         return render_template('search.html', keywords=keywords, data=data)
     
     return render_template('search.html')
+
+#directs user to a login page
+@app.route('/login')
+def login():
+    return render_template('login.html')
 
 @app.route('/visit')
 def visit_website():
@@ -68,6 +79,50 @@ def visit_website():
     # redirect to orginal URL
     return redirect(url)
 
+#returns the current session's username, or "None" if no one is logged in.
+@app.route('/getUsername', methods=["GET"])
+def getUsername():  
+    
+    if 'user' in session and session['user']['id'] > 0:
+        db = DatabaseQuery(0)
+
+        db.cur.execute("SELECT * FROM tbl_user WHERE userid = %s", (session['user']['id'],))
+        data = db.cur.fetchall()
+
+        if len(data) > 0:
+            return str(data[0][1])
+        else:
+            return 'None'
+    return 'None'
+
+#validates the user's login, and logs them in
+#TODO: hash passwords rather than storing them raw
+@app.route("/validateLogin", methods=["POST"])
+def validateLogin():
+    username = request.form['username']
+    password = request.form['password']
+
+    db = DatabaseQuery(0)
+
+    db.cur.execute("SELECT * FROM tbl_user WHERE username = %s", (username,))
+
+    data = db.cur.fetchall()
+
+    if len(data) > 0 and password == data[0][2]: #accept login only if username and password match
+        user = {}
+        user['name'] = data[0][1]
+        user['visited'] = {}
+        user['id'] = data[0][0]
+        session['user'] = user
+
+        return redirect('/search')
+
+    return redirect('/') #PLACEHOLDER
+
+    #else:
+        #TODO: error handling
+
+
 #TODO user maynot logout -> add session timeout and reset timeout on activity
 @app.route('/logout')
 def logout():
@@ -82,7 +137,7 @@ def logout():
         # assuming current schema with an additional Column: visits
         visited_dict = user.get('visited', None)
         if visited_dict:
-            db = DatabaseQuery()
+            db = DatabaseQuery(0)
             
             for url, visits in visited_dict.items():
                 update_query = "UPDATE tbl_data SET visits= visits + %s WHERE url= %s"
@@ -109,7 +164,7 @@ def delete_out_of_date_url_periodically():
     dataid_of_out_of_date_urls = []
     results = []
     
-    db = DatabaseQuery()
+    db = DatabaseQuery(0)
     
     query_get_all_urls = "SELECT dataid, url FROM tbl_data"
     db.cur.execute(query_get_all_urls)

@@ -5,9 +5,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="/static/index.css">
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src = "https://cdnjs.cloudflare.com/ajax/libs/javascript.util/0.12.12/javascript.util.min.js"></script>
+        <script type = "text/javascript" src="{{ url_for('static',filename='header.js') }}"></script>
     </head>
     <body>
-        <a href="{{ url_for('logout') }}">logout</a>
+        <div class="header" id="page-header"></div>
         <h1><center>Cyberminer</center></h1>
         <form class="example" method="post" action="" style="margin:auto;max-width:600px">
             <input type="text" placeholder="Search by keyword to see all the relevant links" name="searchbar" value="{{ keywords }}">
