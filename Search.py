@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, abort, Response
 from dbinterface import DatabaseQuery
 from urllib.request import urlopen
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -117,6 +117,7 @@ def validateLogin():
         user['name'] = data[0][1]
         user['visited'] = {}
         user['id'] = data[0][0]
+        user['isadmin'] = data[0][5]
         session['user'] = user
 
         return redirect('/search')
@@ -131,14 +132,12 @@ def validateLogin():
 @app.route('/logout')
 def logout():
     """
-        Delete user from current session and insert visits to Database table `TODO`
+        Delete user from current session and update no. of visits to Database
         Assuming all users are same
     """
     user = session.pop('user', None)
     if user:
-        # TODO
         # insert visits to db
-        # assuming current schema with an additional Column: visits
         visited_dict = user.get('visited', None)
         if visited_dict:
             db = DatabaseQuery(0)
@@ -163,8 +162,15 @@ def sort_by_most_freq(res):
 # add a background scheduler
 @app.route('/clean')
 def delete_out_of_date_url_periodically():
-    # status code == 4xx or 5xx 
-    #   delete
+    """
+        deletes url's with status codes == 4xx or 5xx
+        only Admin can access this route
+    """
+    # abort if user is not an admin
+    user = session.get('user', None)
+    if user is None or user.get('isadmin', 0) != 1:
+        abort(Response('Not Authorized', 403))
+
     dataid_of_out_of_date_urls = []
     results = []
     
@@ -179,7 +185,7 @@ def delete_out_of_date_url_periodically():
 
     # parallel execution of map using thread pool
     dataid_of_out_of_date_urls = pool.map(is_reachable, results)
-
+    deleted_count = 0
     for dataid in dataid_of_out_of_date_urls:
         if dataid is None:
             continue
@@ -188,6 +194,7 @@ def delete_out_of_date_url_periodically():
             # TODO modify query to delete 
             query_delete = "SELECT * from tbl_data WHERE dataid= %s"
             db.cur.execute(query_delete, (dataid,))
+            deleted_count += 1
             result = db.cur.fetchone()
         except mysql.connector.Error as err:
             print(err)
@@ -196,7 +203,7 @@ def delete_out_of_date_url_periodically():
     db.cur.close()
     db.con.close()
     
-    return "Deleted {} out-of-date urls".format(len(dataid_of_out_of_date_urls))
+    return "Deleted {} out-of-date urls".format(deleted_count)
 
 def is_reachable(r):
     (dataid, url) = r

@@ -29,6 +29,7 @@ for row in dataset:
 cur.execute("INSERT INTO tbl_user(username, password, email) VALUES (%s, %s, %s)", ("testuser", "test", "testemail@test.com"))
 cur.execute("INSERT INTO tbl_filter(userid, filter) VALUES (%s, %s)", ("1", "@"))
 cur.execute("INSERT INTO tbl_filter(userid, filter) VALUES (%s, %s)", ("1", "\""))
+cur.execute("INSERT INTO tbl_user(username, password, email, isadmin) VALUES (%s, %s, %s, %s)", ("admin", "admin", "adminemail@admin.com", "1"))
 
 conn.commit()
 cur.close()
