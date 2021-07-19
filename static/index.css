@@ -31,4 +31,9 @@ form.example::after {
   content: "";
   clear: both;
   display: table;
+<<<<<<< HEAD
+}
+div.header {
+  text-align: right;
+  width: 100%;
 }

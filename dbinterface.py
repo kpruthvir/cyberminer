@@ -2,27 +2,41 @@ import mysql.connector
 from config import Config
 
 class DatabaseQuery:
-	def __init__(self):
+	def __init__(self, userid):
 		db_config = Config().db_config
 		self.con = mysql.connector.connect(**db_config)
 		self.cur = self.con.cursor()
 		self.cur.execute("USE cyberminer")
+		self.user = userid
 
 	#keywords: list of strings
 	#mode: "AND", "OR", or "NOT"
 	def retrieve_data(self, keywords, mode):
-		query = "SELECT title, url, ranking FROM tbl_data WHERE keywords "
+		#retrieve filter list, and remove all filtered characters from the search keywords
+		filter_query = "SELECT filter FROM tbl_filter WHERE userid = " + str(self.user)
+
+		self.cur.execute(filter_query)
+		filters = self.cur.fetchall()
+
+		keywords_filtered = []
+
+		for keywd in keywords:
+			for fltr in filters:
+				keywd = keywd.replace(fltr[0],"")
+			keywords_filtered.append(keywd)
+
+		query = "SELECT title, url, visits FROM tbl_data WHERE keywords "
 		if mode == 'NOT':
-			query += "NOT LIKE '%" + keywords[0] + "%' "
+			query += "NOT LIKE '%" + keywords_filtered[0] + "%' "
 		else:
-			query += "LIKE '%" + keywords[0] + "%' "
+			query += "LIKE '%" + keywords_filtered[0] + "%' "
 		for i in range(1, len(keywords)):
 			if mode == 'OR':
-				query += "OR keywords LIKE '%" + keywords[i] + "%' "
+				query += "OR keywords LIKE '%" + keywords_filtered[i] + "%' "
 			elif mode == 'AND':
-				query += "AND keywords LIKE '%" + keywords[i] + "%' "
+				query += "AND keywords LIKE '%" + keywords_filtered[i] + "%' "
 			elif mode == 'NOT':
-				query += "AND keywords NOT LIKE '%" + keywords[i] + "%' "
+				query += "AND keywords NOT LIKE '%" + keywords_filtered[i] + "%' "
 		self.cur.execute(query)
 
 		results = self.cur.fetchall()
