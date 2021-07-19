@@ -16,7 +16,20 @@
         <form class="example" method="post" action="" style="margin:auto;max-width:600px">
             <input type="text" placeholder="Search by keyword to see all the relevant links" name="searchbar" value="{{ keywords }}">
             <button type="submit"><i class="fa fa-search"></i></button>
+            <label for="sortOrder">Choose sort order:</label>
+            <select name="sortOrder" id="sortOrder">
+                {% if sortOrder == 'MostFrequent' %}
+                <option value="Alphabetical">Alphabetical</option>
+                <option value="MostFrequent" selected>Most frequent</option>
+                {% else %}
+                <option value="Alphabetical" selected>Alphabetical</option>
+                <option value="MostFrequent">Most frequent</option>
+                {% endif %}
+            </select>
+            <label for="resultsPerPage">results/page:</label>
+            <input type="number" name="resultsPerPage" value="10">
         </form>
+        <hr>
         <p></p>
         <center>
         {% for item in data %}

@@ -11,7 +11,7 @@ class DatabaseQuery:
 
 	#keywords: list of strings
 	#mode: "AND", "OR", or "NOT"
-	def retrieve_data(self, keywords, mode):
+	def retrieve_data(self, keywords, mode, sort_order):
 		#retrieve filter list, and remove all filtered characters from the search keywords
 		filter_query = "SELECT filter FROM tbl_filter WHERE userid = " + str(self.user)
 
@@ -37,6 +37,12 @@ class DatabaseQuery:
 				query += "AND keywords LIKE '%" + keywords_filtered[i] + "%' "
 			elif mode == 'NOT':
 				query += "AND keywords NOT LIKE '%" + keywords_filtered[i] + "%' "
+
+		if sort_order == 'Alphabetical':
+			query += "ORDER BY title "
+		elif sort_order == 'MostFrequent':
+			query += "ORDER BY visits DESC "
+
 		self.cur.execute(query)
 
 		results = self.cur.fetchall()

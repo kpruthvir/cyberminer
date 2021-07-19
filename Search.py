@@ -48,10 +48,14 @@ def search():
         if mode_specified == True:
             keywords_split.pop(0)
 
-        interface = DatabaseQuery(session['user']['id'])
-        data = interface.retrieve_data(keywords_split, mode)
+        sort_order = request.form['sortOrder']
+        if sort_order not in ['Alphabetical', 'MostFrequent']:
+            sort_order = None
 
-        return render_template('search.html', keywords=keywords, data=data)
+        interface = DatabaseQuery(session['user']['id'])
+        data = interface.retrieve_data(keywords_split, mode, sort_order)
+
+        return render_template('search.html', keywords=keywords, data=data, sortOrder=sort_order)
     
     return render_template('search.html')
 
