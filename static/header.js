@@ -12,7 +12,7 @@ $(document).ready(function(){
         }
         else
         {
-          var headerLinks = $("<a href=\"/login\">Sign In</a> | <a href=\"/createAccount\">Create Account</a>")
+          var headerLinks = $("<a href=\"/login\">Sign In</a> | <a href=\"/create\">Create Account</a>")
           $("#page-header").append(headerLinks);
         }
     },

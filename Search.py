@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, abort, Response
+from flask import Flask, render_template, request, redirect, session, url_for, abort, Response, jsonify
 from dbinterface import DatabaseQuery
 from urllib.request import urlopen
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -58,6 +58,27 @@ def search():
         return render_template('search.html', keywords=keywords, data=data, sortOrder=sort_order)
     
     return render_template('search.html')
+
+#retrieves search suggestions
+@app.route('/getSuggestions', methods=['GET'])
+def getSuggestions():
+    term = request.args.get('term') #current search term is passed by autocomplete
+
+    db = DatabaseQuery(0)
+
+    query = "SELECT term FROM tbl_searches WHERE term LIKE '" + term + "%' ORDER BY searches DESC LIMIT 5"
+    print(query)
+
+    db.cur.execute(query)
+    data = db.cur.fetchall()
+
+    if len(data) > 0:
+        data_arr = []
+        for row in data:
+            data_arr.append(row[0])
+        return jsonify(data_arr)
+    else:
+        return jsonify([])
 
 #directs user to a login page
 @app.route('/login')
@@ -127,6 +148,32 @@ def validateLogin():
     #else:
         #TODO: error handling
 
+#directs user to a create account page
+@app.route("/create")
+def create():
+    return render_template('account_create.html')
+
+#attempts to create an account, and adds it to database if successful
+@app.route("/createAccount", methods=["POST"])
+def createAccount():
+    username = request.form['username']
+    email = request.form['email']
+    password = request.form['password']
+
+    db = DatabaseQuery(0)
+
+    db.cur.execute("SELECT * FROM tbl_user WHERE username = %s", (username,))
+
+    data = db.cur.fetchall()
+
+    if len(data) != 0:
+        return redirect('/') #PLACEHOLDER, need real error handling!
+    else:
+        db.cur.execute("INSERT INTO tbl_user (username, password, email) VALUES (%s, %s, %s)", (username, password, email))
+        db.con.commit()
+        db.cur.close()
+        db.con.close()
+        return redirect('/')
 
 #TODO user maynot logout -> add session timeout and reset timeout on activity
 @app.route('/logout')
