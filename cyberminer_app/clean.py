@@ -1,6 +1,6 @@
 from cyberminer_app import app
 
-from flask import session, abort, Response
+from flask import session, abort, Response, request, render_template
 from cyberminer_app.dbinterface import DatabaseQuery
 
 from urllib.request import urlopen
@@ -12,7 +12,7 @@ import mysql
 
 # TODO temporary, doesnot need a route
 # add a background scheduler
-@app.route('/clean')
+@app.route('/clean', methods=['GET', 'POST'])
 def delete_out_of_date_url_periodically():
     """
         deletes url's with status codes == 4xx or 5xx
@@ -23,39 +23,48 @@ def delete_out_of_date_url_periodically():
     if user is None or user.get('isadmin', 0) != 1:
         abort(Response('Not Authorized', 403))
 
+    if request.method == "GET":
+        return render_template('clean.html')
+
     dataid_of_out_of_date_urls = []
     results = []
-    
-    db = DatabaseQuery(0)
-    
-    query_get_all_urls = "SELECT dataid, url FROM tbl_data"
-    db.cur.execute(query_get_all_urls)
-    results = db.cur.fetchall()
 
+    db = DatabaseQuery(0)
+
+    if request.form.get('numOfUrls', None) != None:
+        query_get_all_urls = "SELECT dataid, url FROM tbl_data LIMIT {}".format(request.form.get('numOfUrls'))
+    else:
+        query_get_all_urls = "SELECT dataid, url FROM tbl_data"
+
+    db.cur.execute(query_get_all_urls)
+    selected_urls_to_delete = db.cur.fetchall()
+    # return dict(selected_urls_to_delete)
     # thread pool object which controls a pool of worker threads
     pool = Pool(2)
 
     # parallel execution of map using thread pool
-    dataid_of_out_of_date_urls = pool.map(is_reachable, results)
+    dataid_of_out_of_date_urls = pool.map(is_reachable, selected_urls_to_delete)
     deleted_count = 0
+    deleted_urls_dataid = ''
+
     for dataid in dataid_of_out_of_date_urls:
         if dataid is None:
             continue
 
         try:
-            # TODO modify query to delete 
-            query_delete = "SELECT * from tbl_data WHERE dataid= %s"
+            query_delete = "DELETE from tbl_data WHERE dataid= %s"
             db.cur.execute(query_delete, (dataid,))
             deleted_count += 1
-            result = db.cur.fetchone()
         except mysql.connector.Error as err:
             print(err)
         else:
-            print(result)
+            deleted_urls_dataid += str(dataid) + ' '
+
+    db.con.commit()
     db.cur.close()
     db.con.close()
-    
-    return "Deleted {} out-of-date urls".format(deleted_count)
+
+    return "Deleted {} out-of-date urls. Data id's:".format(deleted_count) + deleted_urls_dataid
 
 def is_reachable(r):
     (dataid, url) = r
@@ -64,10 +73,10 @@ def is_reachable(r):
     try:
         handler = urlopen(url)
     except urllib.error.HTTPError as e:
-        print('Exception reason for', url,':', e.reason)
+        print('HTTP Exception reason for', url,':', e.reason)
         reachable = False
     except urllib.error.URLError as e:
-        print('Exception reason for', url, ':', e.reason)
+        print('URL Exception reason for', url, ':', e.reason)
     else:
         if handler.getcode() and handler.getcode() >= 400:
             reachable = False
