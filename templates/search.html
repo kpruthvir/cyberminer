@@ -31,6 +31,8 @@
                 <option value="MostFrequent">Most frequent</option>
                 {% endif %}
             </select>
+            <label for="resultsPerPage">results/page:</label>
+            <input type="number" name="resultsPerPage" value="{{resultsPerPage}}">
         </form>
         <hr>
         <p></p>
@@ -49,8 +51,12 @@
                 <!--<td> <a href={{item[1]}}><div style="height:100%;width:100%">{{item[0]}}</div></a> </td>-->
                     <td>{{ loop.index + pagination.skip }}</td>
                     <td>{{ item[0] }}</td>
-                    <td><a href={{item[1]}}><div style="height:100%;width:100%">{{item[1]}}</div></a></td>
-                </br>
+                    <td>
+                        <a href="/visit?url={{item[1]}}">
+                            <div style="height:100%;width:100%">{{item[1]}}</div>
+                        </a>
+                    </td>
+                <!-- </br> -->
                 </tr>
                 {% endfor %}
                 </tbody>

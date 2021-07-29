@@ -5,6 +5,7 @@ from urllib.request import urlopen
 from urllib.parse import quote, urlsplit, urlunsplit
 import urllib.error
 from multiprocessing.dummy import Pool
+import mysql
 
 from config import Config
 
@@ -60,11 +61,12 @@ def search():
         data = interface.retrieve_data(keywords_split, mode, sort_order)
 
         # Add Paginate() method
-        pagination = Pagination(page=page, per_page=limit, total=20, css_framework='bootstrap4')
-        return render_template('search.html', pagination=pagination, data=data, sortOrder=sort_order)
+        per_page = request.form['resultsPerPage']
+        pagination = Pagination(page=page, per_page=per_page, total=len(data), css_framework='bootstrap4')
+        return render_template('search.html', pagination=pagination, keywords=keywords, data=data, sortOrder=sort_order, resultsPerPage=per_page)
 
     pagination = Pagination(page=page, per_page=limit, total=20, css_framework='bootstrap4')
-    return render_template('search.html', pagination=pagination)
+    return render_template('search.html', pagination=pagination, resultsPerPage=limit)
 
 #retrieves search suggestions
 @app.route('/getSuggestions', methods=['GET'])
@@ -214,8 +216,8 @@ def sort_by_most_freq(res):
 
 # TODO temporary, doesnot need a route
 # add a background scheduler
-@app.route('/clean')
-def delete_out_of_date_url_periodically():
+@app.route('/clean', methods=['GET', 'POST'])
+def delete_out_of_date_url():
     """
         deletes url's with status codes == 4xx or 5xx
         only Admin can access this route
@@ -225,39 +227,48 @@ def delete_out_of_date_url_periodically():
     if user is None or user.get('isadmin', 0) != 1:
         abort(Response('Not Authorized', 403))
 
+    if request.method == "GET":
+        return render_template('clean.html')
+
     dataid_of_out_of_date_urls = []
     results = []
-    
-    db = DatabaseQuery(0)
-    
-    query_get_all_urls = "SELECT dataid, url FROM tbl_data"
-    db.cur.execute(query_get_all_urls)
-    results = db.cur.fetchall()
 
+    db = DatabaseQuery(0)
+
+    if request.form.get('numOfUrls', None) != None:
+        query_get_all_urls = "SELECT dataid, url FROM tbl_data LIMIT {}".format(request.form.get('numOfUrls'))
+    else:
+        query_get_all_urls = "SELECT dataid, url FROM tbl_data"
+
+    db.cur.execute(query_get_all_urls)
+    selected_urls_to_delete = db.cur.fetchall()
+    # return dict(selected_urls_to_delete)
     # thread pool object which controls a pool of worker threads
     pool = Pool(2)
 
     # parallel execution of map using thread pool
-    dataid_of_out_of_date_urls = pool.map(is_reachable, results)
+    dataid_of_out_of_date_urls = pool.map(is_reachable, selected_urls_to_delete)
     deleted_count = 0
+    deleted_urls_dataid = ''
+
     for dataid in dataid_of_out_of_date_urls:
         if dataid is None:
             continue
 
         try:
-            # TODO modify query to delete 
-            query_delete = "SELECT * from tbl_data WHERE dataid= %s"
+            query_delete = "DELETE from tbl_data WHERE dataid= %s"
             db.cur.execute(query_delete, (dataid,))
             deleted_count += 1
-            result = db.cur.fetchone()
         except mysql.connector.Error as err:
             print(err)
         else:
-            print(result)
+            deleted_urls_dataid += str(dataid) + ' '
+
+    db.con.commit()
     db.cur.close()
     db.con.close()
-    
-    return "Deleted {} out-of-date urls".format(deleted_count)
+
+    return "Deleted {} out-of-date urls. Data id's:".format(deleted_count) + deleted_urls_dataid
 
 def is_reachable(r):
     (dataid, url) = r
@@ -266,10 +277,10 @@ def is_reachable(r):
     try:
         handler = urlopen(url)
     except urllib.error.HTTPError as e:
-        print('Exception reason for', url,':', e.reason)
+        print('HTTP Exception reason for', url,':', e.reason)
         reachable = False
     except urllib.error.URLError as e:
-        print('Exception reason for', url, ':', e.reason)
+        print('URL Exception reason for', url, ':', e.reason)
     else:
         if handler.getcode() and handler.getcode() >= 400:
             reachable = False
