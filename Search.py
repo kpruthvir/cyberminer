@@ -22,22 +22,22 @@ def main():
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     # Set the pagination configuration of which page to load on start
-    page = request.args.get('page', 1, type=int)
-    limit = 5
+    page = request.args.get('page', default=1, type=int)
+    limit = 100
+    default_results_per_page = 5
 
-    if request.method == "POST":
-        print('enter search method', session)
-        # add anon user for first access to search
-        if 'user' not in session:
-            user = {}
-            user['name'] = 'anon'
-            user['visited'] = {}
-            user['id'] = 0 #anonymous user has ID of 0
-            session['user'] = user
-        
-        keywords = request.form['searchbar']
-        # Pass the above user input to interface and specify mode
-
+    print('enter search method', session)
+    # add anon user for first access to search
+    if 'user' not in session:
+        user = {}
+        user['name'] = 'anon'
+        user['visited'] = {}
+        user['id'] = 0 #anonymous user has ID of 0
+        session['user'] = user
+    
+    keywords = request.args.get('searchbar', None)
+    # Pass the above user input to interface and specify mode
+    if keywords:
         keywords_split = keywords.split()
         search_mode = keywords_split[0]
 
@@ -53,7 +53,7 @@ def search():
         if mode_specified == True:
             keywords_split.pop(0)
 
-        sort_order = request.form['sortOrder']
+        sort_order = request.args.get('sortOrder', default='Alphabetical')
         if sort_order not in ['Alphabetical', 'MostFrequent']:
             sort_order = None
 
@@ -61,12 +61,21 @@ def search():
         data = interface.retrieve_data(keywords_split, mode, sort_order)
 
         # Add Paginate() method
-        per_page = request.form['resultsPerPage']
-        pagination = Pagination(page=page, per_page=per_page, total=len(data), css_framework='bootstrap4')
-        return render_template('search.html', pagination=pagination, keywords=keywords, data=data, sortOrder=sort_order, resultsPerPage=per_page)
+        per_page = request.args.get('resultsPerPage', default=default_results_per_page, type=int)
+        # limit the max number of results
+        if limit > len(data):
+            limit = len(data)
+        pagination = Pagination(page=page, per_page=per_page, record_name='data', total=limit, css_framework='bootstrap4')
+        
+        start = (page-1) * per_page
+        if not start:
+            start = 0
+        end = page * per_page
+        
+        return render_template('search.html', pagination=pagination, keywords=keywords, data=data[start:end], sortOrder=sort_order, resultsPerPage=per_page)
 
-    pagination = Pagination(page=page, per_page=limit, total=20, css_framework='bootstrap4')
-    return render_template('search.html', pagination=pagination, resultsPerPage=limit)
+    # pagination = Pagination(page=page, per_page=limit, total=20, css_framework='bootstrap4')
+    return render_template('search.html', resultsPerPage=default_results_per_page)
 
 #retrieves search suggestions
 @app.route('/getSuggestions', methods=['GET'])

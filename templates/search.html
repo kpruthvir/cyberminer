@@ -20,7 +20,7 @@
         <h1 style="text-align: center;">
             <a href="/">Cyberminer</a>
         </h1>
-        <form class="example" method="post" action="" style="margin:auto;max-width:600px">
+        <form class="example" method="GET" action="" style="margin:auto;max-width:600px">
             <input type="text" placeholder="Search by keyword to see all the relevant links" name="searchbar" id="searchbar" value="{{ keywords }}">
             <button type="submit"><i class="fa fa-search"></i></button>
             <label for="sortOrder">Choose sort order:</label>
@@ -38,6 +38,7 @@
         </form>
         <hr>
         <p></p>
+        {% if data %}
         <center>
             <table>
                 <thead>
@@ -68,5 +69,6 @@
            {{ pagination.info }}
            {{ pagination.links }}
         </div>
+        {% endif %}
     </body>
 </html>
