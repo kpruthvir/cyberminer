@@ -13,10 +13,7 @@ class DatabaseQuery:
 	#mode: "AND", "OR", or "NOT"
 	def retrieve_data(self, keywords, mode, sort_order):
 		#retrieve filter list, and remove all filtered characters from the search keywords
-		filter_query = "SELECT filter FROM tbl_filter WHERE userid = " + str(self.user)
-
-		self.cur.execute(filter_query)
-		filters = self.cur.fetchall()
+		filters = self.get_filters()
 
 		keywords_filtered = []
 
@@ -47,6 +44,32 @@ class DatabaseQuery:
 
 		results = self.cur.fetchall()
 		return results
+
+	# return a list of filters for the logged-in user
+	def get_filters(self):
+		filter_query = "SELECT filter FROM tbl_filter WHERE userid = " + str(self.user)
+
+		self.cur.execute(filter_query)
+		filters = self.cur.fetchall()
+		return filters
+
+	#add a new filter to the "filters" database table
+	def add_filter(self, new_filter):
+		filters = self.get_filters()
+		for row in filters:
+			if new_filter == row[0]: #return if the filter is already in the table, to avoid duplicates
+				return
+
+		query = "INSERT INTO tbl_filter (userid, filter) VALUES (" + str(self.user) + ",'" + new_filter + "')"
+		self.cur.execute(query)
+		self.con.commit()
+
+	#remove the specified filter from the "filters" database table
+	def remove_filter(self, target_filter):
+		query = "DELETE FROM tbl_filter WHERE userid=" + str(self.user) + " AND filter='" + target_filter + "'"
+		print(query)
+		self.cur.execute(query)
+		self.con.commit()
 
 	#closes connection. use when done.
 	def close(self):

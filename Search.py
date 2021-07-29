@@ -152,10 +152,7 @@ def validateLogin():
 
         return redirect('/search')
 
-    return redirect('/') #PLACEHOLDER
-
-    #else:
-        #TODO: error handling
+    return redirect('/') 
 
 #directs user to a create account page
 @app.route("/create")
@@ -176,7 +173,7 @@ def createAccount():
     data = db.cur.fetchall()
 
     if len(data) != 0:
-        return redirect('/') #PLACEHOLDER, need real error handling!
+        return redirect('/') 
     else:
         db.cur.execute("INSERT INTO tbl_user (username, password, email) VALUES (%s, %s, %s)", (username, password, email))
         db.con.commit()
@@ -207,6 +204,36 @@ def logout():
             db.con.close()
 
     return redirect(url_for('search')) 
+
+    #takes a logged-in user to the settings page
+@app.route('/settings')
+def settings():
+    if session.get('user'):
+        interface = DatabaseQuery(session['user']['id'])
+        filters = interface.get_filters()
+
+        filter_list = []
+
+        for row in filters:
+            filter_list.append(row[0])
+
+        return render_template('settings.html', filters = filter_list)
+
+    return redirect('/')
+
+@app.route('/addFilter', methods=["POST"])
+def addFilter():
+    new_filter = request.form['filterbar']
+    interface = DatabaseQuery(session['user']['id'])
+    interface.add_filter(new_filter)
+    return redirect('/settings')
+
+@app.route('/deleteFilter')
+def deleteFilter():
+    selected_filter = request.args.get('filter')
+    interface = DatabaseQuery(session['user']['id'])
+    interface.remove_filter(selected_filter)
+    return redirect('/settings')
 
 def sort_by_most_freq(res):
     # make use of previous results if they are not None rather than a new query to database
