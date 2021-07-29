@@ -97,19 +97,19 @@ def login():
 @app.route('/visit')
 def visit_website():
     """
-        track no. of visits for every website any user visits using session
+        update no. of visits for every website any user visits
     """
     url = request.args.get('url', '')
 
-    visited = session['user']['visited']
-
-    if url not in visited:
-        visited[url] = 1
-    else:
-        visited[url] += 1
+    if url:
+        # update visits by 1 to db
+        db = DatabaseQuery(0)
+        
+        update_query = "UPDATE tbl_data SET visits= visits + 1 WHERE url= %s"
+        db.cur.execute(update_query, (url,))
     
-    # mark session as modified to save the current  visit
-    session.modified = True
+        db.con.commit()
+    
     # redirect to orginal URL
     return redirect(url)
 
@@ -185,23 +185,9 @@ def createAccount():
 @app.route('/logout')
 def logout():
     """
-        Delete user from current session and update no. of visits to Database
-        Assuming all users are same
+        Delete user from current session
     """
     user = session.pop('user', None)
-    if user:
-        # insert visits to db
-        visited_dict = user.get('visited', None)
-        if visited_dict:
-            db = DatabaseQuery(0)
-            
-            for url, visits in visited_dict.items():
-                update_query = "UPDATE tbl_data SET visits= visits + %s WHERE url= %s"
-                db.cur.execute(update_query, (visits, url))
-        
-            db.con.commit()
-            db.cur.close()
-            db.con.close()
 
     return redirect(url_for('search')) 
 
