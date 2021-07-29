@@ -23,9 +23,14 @@ cur.execute("CREATE TABLE `tbl_searches` ( `searchid` INT NOT NULL AUTO_INCREMEN
 datafile = open('dataset.csv', 'r', encoding='utf-8')
 dataset = csv.reader(datafile)
 
-for row in dataset:
+idx = 0
+for idx, row in dataset:
 	cur.execute('INSERT INTO tbl_data(title, url, keywords) VALUES (%s, %s, %s)', (row[0], row[1], row[2]))
-
+	# Insert invalid urls 
+	if idx % 3 == 0 and idx < 20:
+		cur.execute('INSERT INTO tbl_data(title, url, keywords) VALUES (%s, %s, %s)', ('invalid urls', row[1]+'0000', 'admin clean out-of-date url'))
+	idx += 1
+	
 datafile = open('searchdata.csv', 'r', encoding='utf-8')
 dataset = csv.reader(datafile)
 
