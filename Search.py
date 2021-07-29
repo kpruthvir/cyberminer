@@ -181,7 +181,6 @@ def createAccount():
         db.con.close()
         return redirect('/')
 
-#TODO user maynot logout -> add session timeout and reset timeout on activity
 @app.route('/logout')
 def logout():
     """
@@ -221,14 +220,8 @@ def deleteFilter():
     interface.remove_filter(selected_filter)
     return redirect('/settings')
 
-def sort_by_most_freq(res):
-    # make use of previous results if they are not None rather than a new query to database
-    # TODO change the index for lambda
-    res = sorted(res, key= lambda res_item: res_item[3], reverse= True)
-    return res
 
-# TODO temporary, doesnot need a route
-# add a background scheduler
+# TODO add a background scheduler
 @app.route('/clean', methods=['GET', 'POST'])
 def delete_out_of_date_url():
     """
