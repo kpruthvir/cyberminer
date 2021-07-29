@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, url_for, abort, Response, jsonify
+from flask_paginate import Pagination
 from dbinterface import DatabaseQuery
 from urllib.request import urlopen
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -19,6 +20,9 @@ def main():
 #endpoint for search
 @app.route('/search', methods=['GET', 'POST'])
 def search():
+    # Set the pagination configuration of which page to load on start
+    page = request.args.get('page', 1, type=int)
+    limit = 5
 
     if request.method == "POST":
         print('enter search method', session)
@@ -55,9 +59,12 @@ def search():
         interface = DatabaseQuery(session['user']['id'])
         data = interface.retrieve_data(keywords_split, mode, sort_order)
 
-        return render_template('search.html', keywords=keywords, data=data, sortOrder=sort_order)
-    
-    return render_template('search.html')
+        # Add Paginate() method
+        pagination = Pagination(page=page, per_page=limit, total=20, css_framework='bootstrap4')
+        return render_template('search.html', pagination=pagination, data=data, sortOrder=sort_order)
+
+    pagination = Pagination(page=page, per_page=limit, total=20, css_framework='bootstrap4')
+    return render_template('search.html', pagination=pagination)
 
 #retrieves search suggestions
 @app.route('/getSuggestions', methods=['GET'])
