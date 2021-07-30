@@ -40,4 +40,8 @@ div.header {
 .right {
    float: right;
 }
+.center {
+  margin: auto;
+  width: 25%;
+}
 
